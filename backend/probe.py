@@ -10,7 +10,7 @@ from typing import Any, Optional
 import aiohttp
 from bs4 import BeautifulSoup
 
-from backend.config import DEFAULT_USER_AGENT, get_ffmpeg_path, get_node_path
+from backend.config import DEFAULT_USER_AGENT, get_ffmpeg_path, get_js_runtimes
 from backend.models import FormatOption, MediaCategory, ProbeResult
 from backend.utils import (
     clean_url,
@@ -506,7 +506,7 @@ def _run_ytdlp_extract_sync(url: str, cookies_file: str = "") -> dict[str, Any]:
     import yt_dlp
 
     ffmpeg_path = get_ffmpeg_path()
-    node_path = get_node_path()
+    js_runtimes = get_js_runtimes()
 
     # If URL has both a video ID and playlist param (like YouTube watch?v=X&list=Y),
     # probe single video fast unless it's explicitly a /playlist URL.
@@ -528,19 +528,31 @@ def _run_ytdlp_extract_sync(url: str, cookies_file: str = "") -> dict[str, Any]:
         "extractor_retries": 3,
         "ignoreerrors": False,
         "nocheckcertificate": True,
+        "remote_components": ["ejs:github"],
     }
     if ffmpeg_path:
         ydl_opts["ffmpeg_location"] = os.path.dirname(ffmpeg_path)
-    if node_path:
-        ydl_opts["js_runtimes"] = {"node": {"path": node_path}}
+    if js_runtimes:
+        ydl_opts["js_runtimes"] = js_runtimes
     if cookies_file and os.path.exists(cookies_file):
         ydl_opts["cookiefile"] = cookies_file
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=False)
-        if not info:
-            raise ValueError("No downloadable media found at this URL.")
-        return ydl.sanitize_info(info)
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            if not info:
+                raise ValueError("No downloadable media found at this URL.")
+            return ydl.sanitize_info(info)
+    except Exception as exc:
+        if "requested format is not available" in str(exc).lower():
+            fallback_opts = dict(ydl_opts)
+            fallback_opts["extractor_args"] = {"youtube": {"player_client": ["tv", "web", "mweb"]}}
+            with yt_dlp.YoutubeDL(fallback_opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+                if not info:
+                    raise ValueError("No downloadable media found at this URL.")
+                return ydl.sanitize_info(info)
+        raise
 
 
 async def _sniff_html_media(url: str) -> Optional[ProbeResult]:

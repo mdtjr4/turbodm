@@ -8,7 +8,7 @@ import subprocess
 import time
 from typing import Any, Callable, Optional
 
-from backend.config import get_ffmpeg_path, get_node_path
+from backend.config import get_ffmpeg_path, get_js_runtimes
 from backend.direct_engine import (
     DirectEngineError,
     DownloadCancelledError,
@@ -289,7 +289,6 @@ async def run_video_ytdlp_download(
     """
     loop = asyncio.get_running_loop()
     ffmpeg_path = get_ffmpeg_path()
-    node_path = get_node_path()
 
     os.makedirs(item.save_dir, exist_ok=True)
     stem = os.path.splitext(os.path.basename(item.filepath))[0]
@@ -484,8 +483,10 @@ async def run_video_ytdlp_download(
 
             if ffmpeg_path:
                 ydl_opts["ffmpeg_location"] = os.path.dirname(ffmpeg_path)
-            if node_path:
-                ydl_opts["js_runtimes"] = {"node": {"path": node_path}}
+            js_runtimes = get_js_runtimes()
+            if js_runtimes:
+                ydl_opts["js_runtimes"] = js_runtimes
+            ydl_opts["remote_components"] = ["ejs:github"]
             if cookies_file and os.path.exists(cookies_file):
                 ydl_opts["cookiefile"] = cookies_file
 

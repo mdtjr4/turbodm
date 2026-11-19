@@ -75,6 +75,33 @@ def _prepend_bin_to_path() -> None:
         os.environ["PATH"] = bin_str + os.pathsep + current
 
 
+def get_deno_path() -> Optional[str]:
+    """Locate Deno executable (preferred JS runtime for yt-dlp EJS)."""
+    deno = shutil.which("deno")
+    if deno and os.path.exists(deno):
+        return deno
+    common = [
+        "/usr/local/bin/deno",
+        str(Path.home() / ".deno" / "bin" / ("deno.exe" if os.name == "nt" else "deno")),
+    ]
+    for path in common:
+        if os.path.exists(path):
+            return path
+    return None
+
+
+def get_js_runtimes() -> dict[str, dict[str, str]]:
+    """Build yt-dlp js_runtimes config preferring Deno, falling back to Node.js."""
+    runtimes: dict[str, dict[str, str]] = {}
+    deno = get_deno_path()
+    if deno:
+        runtimes["deno"] = {"path": deno}
+    node = get_node_path()
+    if node:
+        runtimes["node"] = {"path": node}
+    return runtimes
+
+
 def get_node_path() -> Optional[str]:
     """Locate Node.js executable for yt-dlp JavaScript challenge solving."""
     node = shutil.which("node")
