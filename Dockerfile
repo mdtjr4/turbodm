@@ -7,12 +7,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     TURBODM_DOWNLOAD_DIR=/app/data/downloads \
     PORT=7860
 
-# Install FFmpeg (for HD video/audio muxing) and Node.js (for yt-dlp JS challenges)
+# Install FFmpeg (for HD video/audio muxing) and ca-certificates
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
-    nodejs \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Deno (recommended JS runtime for yt-dlp YouTube EJS challenge solving)
+COPY --from=denoland/deno:bin /deno /usr/local/bin/deno
 
 WORKDIR /app
 
