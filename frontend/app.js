@@ -23,6 +23,7 @@
     selectedFormatIdx: 0,
     deleteTargetId: null,
     cloudMode: false,
+    autoDownloadedIds: new Set(),
     ws: null,
     wsRetryTimer: null,
   };
@@ -312,12 +313,25 @@
           }
           renderAll();
         } else if (msg.type === "item_update" && msg.item) {
-          const isNew = !state.items.has(msg.item.id);
+          const prev = state.items.get(msg.item.id);
+          const isNew = !prev;
           state.items.set(msg.item.id, msg.item);
           if (isNew || !state.selectedId) {
             state.selectedId = msg.item.id;
           }
           renderAll();
+
+          // In Cloud Mode, automatically send the completed file straight to the user's device!
+          if (
+            state.cloudMode &&
+            msg.item.status === "completed" &&
+            (!prev || prev.status !== "completed") &&
+            !state.autoDownloadedIds.has(msg.item.id)
+          ) {
+            state.autoDownloadedIds.add(msg.item.id);
+            triggerDeviceDownload(msg.item);
+            toast(`Download ready! Saving "${msg.item.filename}" to your device...`, "success");
+          }
         } else if (msg.type === "item_deleted") {
           state.items.delete(msg.id);
           if (state.selectedId === msg.id) {
@@ -350,10 +364,24 @@
     ws.onerror = () => ws.close();
   }
 
+  function triggerDeviceDownload(item) {
+    const a = document.createElement("a");
+    a.href = `/api/downloads/${encodeURIComponent(item.id)}/file`;
+    a.download = item.filename || "download";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
   function applySettingsToState(settings) {
     state.settings = settings;
-    els.sidebarDirLabel.textContent = settings.download_dir || "Downloads/TurboDM";
-    els.sidebarDirLabel.title = settings.download_dir || "";
+    if (state.cloudMode) {
+      els.sidebarDirLabel.textContent = "Auto-saves to your device";
+      els.sidebarDirLabel.title = "Files automatically download to your browser";
+    } else {
+      els.sidebarDirLabel.textContent = settings.download_dir || "Downloads/TurboDM";
+      els.sidebarDirLabel.title = settings.download_dir || "";
+    }
   }
 
   function updateSystemBadges(sys) {
@@ -369,6 +397,16 @@
       hideInCloud.forEach((el) => {
         if (el) el.style.display = state.cloudMode ? "none" : "";
       });
+      // Hide server-side folder & cookies fields in Cloud Mode
+      const hideGroups = [els.modalSaveDirInput, els.batchSaveDirInput, els.setDownloadDir, els.setCookiesFile];
+      hideGroups.forEach((el) => {
+        const group = el && el.closest(".field-group");
+        if (group) group.style.display = state.cloudMode ? "none" : "";
+      });
+      if (state.cloudMode) {
+        els.sidebarDirLabel.textContent = "Auto-saves to your device";
+        els.sidebarDirLabel.title = "Files automatically download to your browser";
+      }
       renderAll();
     }
   }
@@ -462,7 +500,7 @@
       ? `<button class="row-btn" data-row-act="pause" data-id="${item.id}" title="Pause">⏸</button>`
       : item.status === "completed"
         ? (state.cloudMode
-            ? `<button class="row-btn" data-row-act="save-device" data-id="${item.id}" title="Save to Device">⬇</button>`
+            ? `<button class="row-btn save-btn" data-row-act="save-device" data-id="${item.id}" title="Download to your PC / Phone">⬇ Save</button>`
             : `<button class="row-btn" data-row-act="open" data-id="${item.id}" title="Open File">▶</button>`)
         : `<button class="row-btn" data-row-act="resume" data-id="${item.id}" title="Resume / Retry">▶</button>`;
 
@@ -637,8 +675,10 @@
 
     els.inspUrl.textContent = item.url;
     els.inspUrl.title = item.url;
-    els.inspPath.textContent = item.filepath || item.save_dir;
-    els.inspPath.title = item.filepath || item.save_dir;
+    els.inspPath.textContent = state.cloudMode
+      ? (item.status === "completed" ? "Ready — Saved to your browser (click Save to download again)" : "Preparing on server, will auto-save to your device...")
+      : (item.filepath || item.save_dir);
+    els.inspPath.title = state.cloudMode ? "" : (item.filepath || item.save_dir);
     els.inspStatus.textContent = item.error_message ? `${item.status_text}` : item.status_text;
     els.inspResume.textContent = item.supports_resume ? "Yes (Pause & Resume Supported)" : "Standard Stream";
     els.inspSpeedNow.textContent = formatSpeed(item.speed);
@@ -1006,12 +1046,7 @@
         const ep = item.status === "error" || item.status === "cancelled" ? "retry" : "resume";
         await api(`/api/downloads/${id}/${ep}`, { method: "POST" });
       } else if (action === "save-device" || (action === "open" && state.cloudMode)) {
-        const a = document.createElement("a");
-        a.href = `/api/downloads/${encodeURIComponent(id)}/file`;
-        a.download = item.filename || "download";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+        triggerDeviceDownload(item);
       } else if (action === "open") {
         await api(`/api/downloads/${id}/open`, { method: "POST" });
       } else if (action === "reveal") {

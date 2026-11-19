@@ -858,6 +858,23 @@ html, body {
   color: var(--danger);
 }
 
+.row-btn.save-btn {
+  width: auto;
+  padding: 0 10px;
+  gap: 4px;
+  background: #10b981;
+  border-color: #059669;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.row-btn.save-btn:hover {
+  background: #059669;
+  border-color: #047857;
+  color: #ffffff;
+}
+
 /* Beginner-Friendly Empty State */
 .empty-state {
   display: flex;
