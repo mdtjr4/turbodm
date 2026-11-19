@@ -98,7 +98,10 @@ def resolve_default_cookies_file() -> str:
 
     render_secret = Path("/etc/secrets/cookies.txt")
     if render_secret.exists() and render_secret.stat().st_size > 0:
-        return str(render_secret)
+        ensure_directories()
+        target = DATA_DIR / "cookies.txt"
+        shutil.copy2(render_secret, target)
+        return str(target)
 
     raw_cookies = (
         os.environ.get("TURBODM_COOKIES_TEXT", "")
@@ -126,7 +129,11 @@ class SettingsStore:
                 settings = AppSettings(**{**self._defaults().model_dump(), **data})
                 if CLOUD_MODE and (":\\" in settings.download_dir or not settings.download_dir.strip()):
                     settings.download_dir = DEFAULT_DOWNLOAD_DIR
-                if auto_cookies and (not settings.cookies_file or not os.path.exists(settings.cookies_file)):
+                if auto_cookies and (
+                    not settings.cookies_file
+                    or settings.cookies_file == "/etc/secrets/cookies.txt"
+                    or not os.path.exists(settings.cookies_file)
+                ):
                     settings.cookies_file = auto_cookies
                 Path(settings.download_dir).mkdir(parents=True, exist_ok=True)
                 return settings
