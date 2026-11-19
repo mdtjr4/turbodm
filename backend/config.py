@@ -90,23 +90,51 @@ def get_node_path() -> Optional[str]:
     return None
 
 
+def resolve_default_cookies_file() -> str:
+    """Resolve cookies.txt from environment variables or Render Secret Files."""
+    env_path = os.environ.get("TURBODM_COOKIES_FILE", "").strip()
+    if env_path and os.path.exists(env_path):
+        return env_path
+
+    render_secret = Path("/etc/secrets/cookies.txt")
+    if render_secret.exists() and render_secret.stat().st_size > 0:
+        return str(render_secret)
+
+    raw_cookies = (
+        os.environ.get("TURBODM_COOKIES_TEXT", "")
+        or os.environ.get("YOUTUBE_COOKIES", "")
+    ).strip()
+    if raw_cookies:
+        ensure_directories()
+        target = DATA_DIR / "cookies.txt"
+        target.write_text(raw_cookies + "\n", encoding="utf-8")
+        return str(target)
+
+    return ""
+
+
 class SettingsStore:
     def __init__(self) -> None:
         ensure_directories()
         self._settings = self._load()
 
     def _load(self) -> AppSettings:
+        auto_cookies = resolve_default_cookies_file()
         if SETTINGS_FILE.exists():
             try:
                 data = json.loads(SETTINGS_FILE.read_text(encoding="utf-8"))
                 settings = AppSettings(**{**self._defaults().model_dump(), **data})
                 if CLOUD_MODE and (":\\" in settings.download_dir or not settings.download_dir.strip()):
                     settings.download_dir = DEFAULT_DOWNLOAD_DIR
+                if auto_cookies and (not settings.cookies_file or not os.path.exists(settings.cookies_file)):
+                    settings.cookies_file = auto_cookies
                 Path(settings.download_dir).mkdir(parents=True, exist_ok=True)
                 return settings
             except Exception:
                 pass
         settings = self._defaults()
+        if auto_cookies:
+            settings.cookies_file = auto_cookies
         self._save(settings)
         return settings
 
