@@ -1,0 +1,9 @@
+.venv/
+.git/
+__pycache__/
+*.pyc
+*.pyo
+bin/
+data/
+Launch_TurboDM.bat
+Launch_TurboDM.vbs

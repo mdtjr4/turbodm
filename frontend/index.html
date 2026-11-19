@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TurboDM — Easy High-Speed Download Manager</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%230284c7'/%3E%3Cstop offset='100%25' stop-color='%2310b981'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='url(%23g)'/%3E%3Cpath d='M36 10L16 36h14l-2 18 20-26H34l2-18z' fill='%23fff'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="/static/styles.css" />
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem("turbodm_theme");
+        if (saved === "dark" || saved === "light") {
+          document.documentElement.setAttribute("data-theme", saved);
+        }
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body>
+  <div class="app-shell" id="appShell">
+    <!-- Top Header & Beginner-Friendly Quick Download Bar -->
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-name">TurboDM</span>
+          <span class="brand-sub">Easy Fast Downloader</span>
+        </div>
+      </div>
+
+      <!-- Quick URL Bar -->
+      <div class="quick-bar">
+        <div class="quick-input-wrap">
+          <svg class="quick-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+          </svg>
+          <input
+            type="text"
+            id="quickUrlInput"
+            placeholder="Paste any YouTube, Facebook, TikTok, or file link here..."
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button class="paste-chip-btn" id="quickPasteBtn" title="Paste link from clipboard">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <span>Paste</span>
+          </button>
+        </div>
+        <button class="btn btn-primary" id="quickAnalyzeBtn" title="Choose video quality or file name before downloading">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          <span>Download</span>
+        </button>
+        <button class="btn btn-turbo" id="quickInstantBtn" title="Instant 1-click download in best available quality">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          </svg>
+          <span>Quick Save</span>
+        </button>
+      </div>
+
+      <!-- Status, Theme Toggle & Help -->
+      <div class="header-status">
+        <div class="conn-pill" id="wsStatusPill" title="Download Engine Status">
+          <span class="dot"></span>
+          <span id="wsStatusText">Ready</span>
+        </div>
+        <div class="engine-pill" id="ffmpegBadge" title="FFmpeg Video/Audio Combiner">FFmpeg Ready</div>
+        <button class="theme-toggle-btn" id="themeToggleBtn" type="button" title="Switch between Light and Dark mode">
+          <span class="theme-icon" id="themeToggleIcon" aria-hidden="true">🌙</span>
+          <span id="themeToggleLabel">Dark</span>
+        </button>
+        <button class="help-btn" id="btnHelp" type="button" title="Quick Guide: How to use TurboDM">?</button>
+      </div>
+    </header>
+
+    <!-- Simplified Beginner-Friendly Action Toolbar -->
+    <nav class="toolbar" aria-label="Download Controls">
+      <div class="toolbar-group">
+        <button class="tool-btn tool-btn-accent" id="btnAddUrl" title="Add a new video or file link (Ctrl+N)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <span>New Download</span>
+        </button>
+        <button class="tool-btn" id="btnBatchUrl" title="Download multiple links at once">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          <span>Multiple Links</span>
+        </button>
+      </div>
+
+      <div class="toolbar-sep"></div>
+
+      <div class="toolbar-group">
+        <button class="tool-btn" id="btnResumeSel" disabled title="Resume selected download">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <span>Resume</span>
+        </button>
+        <button class="tool-btn" id="btnPauseSel" disabled title="Pause selected download">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+          <span>Pause</span>
+        </button>
+        <button class="tool-btn" id="btnPauseAll" title="Pause all active downloads">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="10" y1="15" x2="10" y2="9"/><line x1="14" y1="15" x2="14" y2="9"/></svg>
+          <span>Pause All</span>
+        </button>
+        <button class="tool-btn" id="btnResumeAll" title="Resume all paused downloads">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+          <span>Resume All</span>
+        </button>
+      </div>
+
+      <div class="toolbar-sep"></div>
+
+      <div class="toolbar-group">
+        <button class="tool-btn danger" id="btnDeleteSel" disabled title="Remove selected item (Del)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          <span>Delete</span>
+        </button>
+        <button class="tool-btn" id="btnClearCompleted" title="Clear finished downloads from the list (files stay safe on disk)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Clear Done</span>
+        </button>
+      </div>
+
+      <div class="toolbar-spacer"></div>
+
+      <div class="toolbar-group">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="searchInput" placeholder="Search downloads..." />
+        </div>
+        <button class="tool-btn" id="btnOpenFolder" title="Open your Downloads folder">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          <span>Open Folder</span>
+        </button>
+        <button class="tool-btn" id="btnSettings" title="Download folder, speed & preferences">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <span>Settings</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Main Body Workspace -->
+    <div class="workspace">
+      <!-- Left Category Sidebar -->
+      <aside class="sidebar">
+        <div class="nav-section">
+          <div class="nav-label">MY DOWNLOADS</div>
+          <button class="nav-item active" data-filter="all">
+            <span class="nav-icon">📥</span>
+            <span>All Downloads</span>
+            <span class="nav-count" id="cnt-all">0</span>
+          </button>
+          <button class="nav-item" data-filter="active">
+            <span class="nav-icon accent">⚡</span>
+            <span>Downloading</span>
+            <span class="nav-count" id="cnt-active">0</span>
+          </button>
+          <button class="nav-item" data-filter="unfinished">
+            <span class="nav-icon warn">⏸</span>
+            <span>Paused / Waiting</span>
+            <span class="nav-count" id="cnt-unfinished">0</span>
+          </button>
+          <button class="nav-item" data-filter="completed">
+            <span class="nav-icon ok">✓</span>
+            <span>Completed</span>
+            <span class="nav-count" id="cnt-completed">0</span>
+          </button>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-label">FILE TYPES</div>
+          <button class="nav-item" data-filter="cat:video">
+            <span class="nav-icon">🎬</span>
+            <span>Videos</span>
+            <span class="nav-count" id="cnt-video">0</span>
+          </button>
+          <button class="nav-item" data-filter="cat:audio">
+            <span class="nav-icon">🎵</span>
+            <span>Audio &amp; Music</span>
+            <span class="nav-count" id="cnt-audio">0</span>
+          </button>
+          <button class="nav-item" data-filter="cat:compressed">
+            <span class="nav-icon">📦</span>
+            <span>ZIP &amp; Archives</span>
+            <span class="nav-count" id="cnt-compressed">0</span>
+          </button>
+          <button class="nav-item" data-filter="cat:documents">
+            <span class="nav-icon">📄</span>
+            <span>Documents</span>
+            <span class="nav-count" id="cnt-documents">0</span>
+          </button>
+          <button class="nav-item" data-filter="cat:programs">
+            <span class="nav-icon">💻</span>
+            <span>Programs</span>
+            <span class="nav-count" id="cnt-programs">0</span>
+          </button>
+        </div>
+
+        <div class="sidebar-footer">
+          <div class="speed-card">
+            <div class="speed-card-top">
+              <span class="speed-card-label">DOWNLOAD SPEED</span>
+              <span class="active-badge" id="sidebarActiveBadge">0 active</span>
+            </div>
+            <div class="speed-card-val" id="globalSpeedValue">0.00 MB/s</div>
+            <div class="speed-card-sub" id="sidebarDirLabel" title="Default Download Folder">Downloads/TurboDM</div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Right Content Area: Table + Collapsible Live Details Inspector -->
+      <main class="main-area">
+        <div class="table-wrap" id="dropZone">
+          <table class="dl-table">
+            <thead>
+              <tr>
+                <th class="col-name">File / Video</th>
+                <th class="col-size">Size</th>
+                <th class="col-progress">Status &amp; Progress</th>
+                <th class="col-speed">Speed</th>
+                <th class="col-eta">Time Left</th>
+                <th class="col-conn">Parts</th>
+                <th class="col-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="downloadTableBody"></tbody>
+          </table>
+
+          <!-- Beginner-Friendly Welcome Empty State -->
+          <div class="empty-state" id="emptyState">
+            <div class="empty-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+            </div>
+            <h2>Welcome to TurboDM</h2>
+            <p class="empty-lead">Download videos or any file at maximum speed in 3 simple steps:</p>
+
+            <div class="steps-grid">
+              <div class="step-card">
+                <div class="step-num">1</div>
+                <div class="step-title">Copy a Link</div>
+                <div class="step-desc">YouTube, Facebook, TikTok, Instagram, or any direct file URL</div>
+              </div>
+              <div class="step-card">
+                <div class="step-num">2</div>
+                <div class="step-title">Paste &amp; Pick Quality</div>
+                <div class="step-desc">Paste above and choose HD video, MP3 audio, or Quick Save</div>
+              </div>
+              <div class="step-card">
+                <div class="step-num">3</div>
+                <div class="step-title">Fast &amp; Resumable</div>
+                <div class="step-desc">Pause, resume anytime, and open your file with one click</div>
+              </div>
+            </div>
+
+            <div class="empty-actions">
+              <button class="btn btn-primary btn-lg" id="emptyAddBtn">+ Add a Download</button>
+              <button class="btn btn-ghost btn-lg" id="emptyBatchBtn">Add Multiple Links</button>
+            </div>
+            <div class="empty-tip">Tip: You can also drag and drop any web link right onto this window.</div>
+          </div>
+        </div>
+
+        <!-- Bottom Live Details & Speed Inspector (Collapsible for Beginners) -->
+        <section class="inspector" id="inspectorPanel">
+          <div class="inspector-header">
+            <div class="inspector-title-group">
+              <span class="inspector-pill" id="inspModePill">DOWNLOAD DETAILS</span>
+              <span class="inspector-name" id="inspFilename">Click any download above to see live speed &amp; details</span>
+            </div>
+            <div class="inspector-header-right">
+              <div class="inspector-meta-right" id="inspMetaRight"></div>
+              <button class="insp-toggle-btn" id="inspToggleBtn" type="button" title="Expand or collapse details panel">
+                <span id="inspToggleLabel">Hide Details</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="inspector-body" id="inspectorBody">
+            <!-- Left: Info Card -->
+            <div class="insp-info">
+              <div class="insp-thumb-wrap" id="inspThumbWrap">
+                <img id="inspThumb" alt="" />
+                <div class="insp-thumb-fallback" id="inspThumbFallback">▶</div>
+              </div>
+              <div class="insp-details">
+                <div class="insp-row">
+                  <span class="k">Source:</span>
+                  <span class="v mono truncate" id="inspUrl">—</span>
+                </div>
+                <div class="insp-row">
+                  <span class="k">Saved In:</span>
+                  <span class="v mono truncate" id="inspPath">—</span>
+                </div>
+                <div class="insp-row">
+                  <span class="k">Status:</span>
+                  <span class="v" id="inspStatus">—</span>
+                </div>
+                <div class="insp-row">
+                  <span class="k">Resume:</span>
+                  <span class="v" id="inspResume">—</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Middle: Multi-Segment Parallel Connection Bars -->
+            <div class="insp-segments">
+              <div class="insp-subhead">
+                <span>SPEED PARTS (PARALLEL CONNECTIONS)</span>
+                <span class="mono" id="inspSegSummary">0 parts</span>
+              </div>
+              <div class="seg-grid" id="inspSegGrid">
+                <div class="seg-placeholder">Live download parts appear here while downloading</div>
+              </div>
+            </div>
+
+            <!-- Right: Real-time Speed Graph -->
+            <div class="insp-chart">
+              <div class="insp-subhead">
+                <span>LIVE SPEED GRAPH</span>
+                <span class="mono accent-text" id="inspSpeedNow">0.00 MB/s</span>
+              </div>
+              <canvas id="speedCanvas" width="280" height="86"></canvas>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- MODAL 1: Add URL & Smart Video Analyzer -->
+  <div class="modal-backdrop hidden" id="addModal">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <div>
+          <h3>New Download</h3>
+          <div class="modal-subtitle">Paste a video or file link, then click Check Link to choose quality</div>
+        </div>
+        <button class="modal-close" data-close="addModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label class="field-label">Video or File Link (URL)</label>
+        <div class="input-row">
+          <input type="text" id="modalUrlInput" placeholder="https://youtube.com/watch?v=... or any direct file link" spellcheck="false" />
+          <button class="btn btn-ghost" id="modalPasteBtn">Paste</button>
+          <button class="btn btn-primary" id="modalAnalyzeBtn">Check Link</button>
+        </div>
+
+        <!-- Probing Spinner -->
+        <div class="probe-loading hidden" id="probeLoading">
+          <div class="spinner"></div>
+          <div>
+            <strong>Checking your link...</strong>
+            <div class="muted small">Finding available video qualities, audio formats, and file size</div>
+          </div>
+        </div>
+
+        <!-- Probe Error -->
+        <div class="alert-error hidden" id="probeError"></div>
+
+        <!-- Probe Result Preview -->
+        <div class="probe-result hidden" id="probeResultBox">
+          <div class="preview-card">
+            <div class="preview-thumb" id="previewThumbBox">
+              <img id="previewThumb" alt="" />
+              <div class="preview-thumb-icon" id="previewThumbIcon">⬇</div>
+              <span class="duration-badge hidden" id="previewDuration"></span>
+            </div>
+            <div class="preview-info">
+              <div class="preview-badges">
+                <span class="badge badge-accent" id="previewExtractor">Direct File</span>
+                <span class="badge badge-ok hidden" id="previewRangeBadge">Fast Multi-Part</span>
+                <span class="badge badge-muted" id="previewSizeBadge">Size: —</span>
+              </div>
+              <h4 id="previewTitle">File Title</h4>
+              <div class="muted small" id="previewSub"></div>
+            </div>
+          </div>
+
+          <!-- Video Formats Selector -->
+          <div class="formats-section hidden" id="formatsSection">
+            <label class="field-label">Choose Video Quality or Audio Format</label>
+            <div class="format-list" id="formatList"></div>
+          </div>
+
+          <!-- Playlist Entries Selector -->
+          <div class="playlist-section hidden" id="playlistSection">
+            <div class="playlist-top">
+              <label class="field-label" id="playlistTitleLabel">Playlist Videos</label>
+              <div class="playlist-controls">
+                <select id="playlistQualitySelect">
+                  <option value="best">Best Quality (MP4)</option>
+                  <option value="1080">Up to 1080p Full HD</option>
+                  <option value="720">Up to 720p HD</option>
+                  <option value="480">Up to 480p SD</option>
+                  <option value="audio">Audio Only (MP3)</option>
+                </select>
+                <button class="btn btn-ghost btn-sm" id="plSelectAll">All</button>
+                <button class="btn btn-ghost btn-sm" id="plSelectNone">None</button>
+              </div>
+            </div>
+            <div class="playlist-list" id="playlistList"></div>
+          </div>
+
+          <!-- Filename, Save Path & Connections -->
+          <div class="download-options-grid" id="singleOptionsGrid">
+            <div class="field-group full">
+              <label class="field-label">File Name</label>
+              <input type="text" id="modalFilenameInput" />
+            </div>
+            <div class="field-group">
+              <label class="field-label">Save to Folder</label>
+              <div class="input-row">
+                <input type="text" id="modalSaveDirInput" />
+                <button class="btn btn-ghost" id="modalBrowseBtn">Choose...</button>
+              </div>
+            </div>
+            <div class="field-group small-col">
+              <label class="field-label">Speed Boost Parts: <strong id="modalConnLabel">12</strong></label>
+              <input type="range" id="modalConnSlider" min="1" max="32" value="12" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-close="addModal">Cancel</button>
+        <div class="footer-right">
+          <button class="btn btn-ghost hidden" id="modalAddPausedBtn">Save for Later</button>
+          <button class="btn btn-primary" id="modalStartBtn" disabled>Start Download</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: Batch URLs -->
+  <div class="modal-backdrop hidden" id="batchModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <h3>Download Multiple Links</h3>
+          <div class="modal-subtitle">Paste one link per line and queue them all together</div>
+        </div>
+        <button class="modal-close" data-close="batchModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label class="field-label">Links (one URL per line)</label>
+        <textarea id="batchUrlsInput" rows="7" placeholder="https://www.youtube.com/watch?v=...&#10;https://example.com/file.mp4&#10;https://vimeo.com/..."></textarea>
+        <div class="download-options-grid">
+          <div class="field-group">
+            <label class="field-label">Preferred Video Quality</label>
+            <select id="batchQualitySelect">
+              <option value="best">Best Available Quality (MP4)</option>
+              <option value="1080">Up to 1080p Full HD</option>
+              <option value="720">Up to 720p HD</option>
+              <option value="480">Up to 480p SD</option>
+              <option value="audio">Audio Only (MP3 320k)</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Save to Folder</label>
+            <div class="input-row">
+              <input type="text" id="batchSaveDirInput" />
+              <button class="btn btn-ghost" id="batchBrowseBtn">Choose</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-close="batchModal">Cancel</button>
+        <button class="btn btn-primary" id="batchStartBtn">Start All Downloads</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 3: Settings -->
+  <div class="modal-backdrop hidden" id="settingsModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <h3>Settings</h3>
+          <div class="modal-subtitle">Customize where files are saved and how fast TurboDM downloads</div>
+        </div>
+        <button class="modal-close" data-close="settingsModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="settings-section-title">Basic Settings</div>
+        <div class="field-group">
+          <label class="field-label">Default Download Folder</label>
+          <div class="input-row">
+            <input type="text" id="setDownloadDir" />
+            <button class="btn btn-ghost" id="setBrowseBtn">Choose...</button>
+          </div>
+        </div>
+        <div class="settings-grid">
+          <div class="field-group">
+            <label class="field-label">Simultaneous Downloads (1–10)</label>
+            <input type="number" id="setMaxConcurrent" min="1" max="10" value="3" />
+            <div class="field-hint">How many files download at the same time</div>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Speed Limit KB/s (0 = Unlimited)</label>
+            <input type="number" id="setSpeedLimit" min="0" step="100" value="0" />
+            <div class="field-hint">Keep 0 for maximum internet speed</div>
+          </div>
+        </div>
+        <label class="checkbox-row">
+          <input type="checkbox" id="setAutoCategorize" />
+          <span>Automatically sort downloads into subfolders (Videos, Audio, Documents, Programs)</span>
+        </label>
+
+        <div class="settings-divider"></div>
+        <div class="settings-section-title">Advanced Speed &amp; Video Options</div>
+
+        <div class="settings-grid">
+          <div class="field-group">
+            <label class="field-label">Connections per File (1–32)</label>
+            <input type="number" id="setConnections" min="1" max="32" value="12" />
+            <div class="field-hint">Default 12 works great for most connections</div>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Stream Fragment Threads (1–32)</label>
+            <input type="number" id="setYtdlpFrags" min="1" max="32" value="16" />
+            <div class="field-hint">Parallel chunks for HLS / video streams</div>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Optional cookies.txt Path (for private/logged-in videos)</label>
+          <input type="text" id="setCookiesFile" placeholder="Leave empty for normal public downloads" />
+        </div>
+        <label class="checkbox-row">
+          <input type="checkbox" id="setTurboVideo" checked />
+          <span>Enable Turbo Multi-Part Acceleration for direct video streams (automatically falls back if restricted)</span>
+        </label>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-close="settingsModal">Cancel</button>
+        <button class="btn btn-primary" id="saveSettingsBtn">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 4: Delete Confirm -->
+  <div class="modal-backdrop hidden" id="deleteModal">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3>Remove Download</h3>
+        <button class="modal-close" data-close="deleteModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="deleteConfirmText">Remove this download from the list?</p>
+        <label class="checkbox-row">
+          <input type="checkbox" id="deleteFromDiskCheck" />
+          <span>Also permanently delete the file from my computer</span>
+        </label>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-close="deleteModal">Cancel</button>
+        <button class="btn btn-danger" id="confirmDeleteBtn">Remove</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 5: Beginner Quick Help -->
+  <div class="modal-backdrop hidden" id="helpModal">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3>Quick Start Guide</h3>
+        <button class="modal-close" data-close="helpModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="help-list">
+          <div class="help-item">
+            <span class="help-badge">1</span>
+            <div>
+              <strong>Download with Quality Picker</strong>
+              <p>Paste a link in the top bar and click <strong>Download</strong> to choose HD/4K video, MP3 audio, or rename the file.</p>
+            </div>
+          </div>
+          <div class="help-item">
+            <span class="help-badge">2</span>
+            <div>
+              <strong>1-Click Quick Save</strong>
+              <p>Paste a link and click <strong>Quick Save</strong> to immediately start downloading in the best available quality.</p>
+            </div>
+          </div>
+          <div class="help-item">
+            <span class="help-badge">3</span>
+            <div>
+              <strong>Pause, Resume &amp; Open</strong>
+              <p>Double-click any finished download to open it, or right-click any row for quick actions.</p>
+            </div>
+          </div>
+          <div class="help-item">
+            <span class="help-badge">4</span>
+            <div>
+              <strong>Light &amp; Dark Mode</strong>
+              <p>Use the Light/Dark button in the top-right corner anytime. Your choice is saved automatically.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <span></span>
+        <button class="btn btn-primary" data-close="helpModal">Got It</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Context Menu -->
+  <div class="context-menu hidden" id="contextMenu">
+    <button data-action="resume">▶ Resume / Retry</button>
+    <button data-action="pause">⏸ Pause</button>
+    <div class="ctx-sep"></div>
+    <button data-action="open">📂 Open File</button>
+    <button data-action="reveal">📁 Show in Folder</button>
+    <button data-action="copy-url">🔗 Copy Link</button>
+    <div class="ctx-sep"></div>
+    <button class="danger" data-action="delete">🗑 Remove...</button>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
