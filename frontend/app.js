@@ -997,6 +997,47 @@
       start_immediately: startImmediately,
     };
 
+    // In Cloud Mode, stream directly into the user's browser (ZERO double download!)
+    const canLiveStream =
+      state.cloudMode &&
+      startImmediately &&
+      (data.kind === "direct" || Boolean(payload.direct_video_url) || Boolean(payload.direct_audio_url));
+
+    if (canLiveStream) {
+      try {
+        els.modalStartBtn.disabled = true;
+        els.modalStartBtn.textContent = "Starting Direct Download...";
+        const prep = await api("/api/stream/prepare", {
+          method: "POST",
+          body: JSON.stringify({
+            url: payload.url,
+            filename: payload.filename,
+            kind: payload.kind,
+            direct_video_url: payload.direct_video_url,
+            direct_audio_url: payload.direct_audio_url,
+            is_audio_only: payload.is_audio_only,
+            audio_format: payload.audio_format,
+            http_headers: payload.http_headers,
+          }),
+        });
+        const a = document.createElement("a");
+        a.href = prep.stream_url;
+        a.download = prep.filename || payload.filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        closeModal("addModal");
+        els.quickUrlInput.value = "";
+        toast(`Downloading "${prep.filename}" directly to your computer!`, "ok");
+      } catch (err) {
+        toast(err.message, "error");
+      } finally {
+        els.modalStartBtn.disabled = false;
+        els.modalStartBtn.textContent = "Start Download";
+      }
+      return;
+    }
+
     try {
       await api("/api/downloads", {
         method: "POST",
@@ -1015,6 +1056,48 @@
     if (!url) {
       toast("Paste a video or file link first.", "error");
       return;
+    }
+    if (state.cloudMode) {
+      try {
+        toast("Preparing direct download to your device...", "info");
+        const data = await api("/api/probe", {
+          method: "POST",
+          body: JSON.stringify({ url }),
+        });
+        const fmt = (data.formats && data.formats[0]) || null;
+        const canStream =
+          data.kind !== "playlist" &&
+          (data.kind === "direct" || Boolean(fmt && (fmt.direct_video_url || fmt.direct_audio_url)));
+        if (canStream) {
+          const prep = await api("/api/stream/prepare", {
+            method: "POST",
+            body: JSON.stringify({
+              url: data.kind === "direct" ? data.final_url : data.url,
+              filename: data.filename || "download.mp4",
+              kind: data.kind,
+              direct_video_url: fmt ? fmt.direct_video_url : null,
+              direct_audio_url: fmt ? fmt.direct_audio_url : null,
+              is_audio_only: fmt ? Boolean(fmt.is_audio_only) : false,
+              audio_format: fmt && fmt.is_audio_only ? (fmt.ext || "mp3") : "mp3",
+              http_headers: (fmt && fmt.http_headers && Object.keys(fmt.http_headers).length > 0)
+                ? fmt.http_headers
+                : (data.http_headers || {}),
+            }),
+          });
+          const a = document.createElement("a");
+          a.href = prep.stream_url;
+          a.download = prep.filename || data.filename;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          els.quickUrlInput.value = "";
+          toast(`Downloading "${prep.filename}" directly to your computer!`, "ok");
+          return;
+        }
+      } catch (err) {
+        toast(err.message, "error");
+        return;
+      }
     }
     try {
       await api("/api/downloads", {
